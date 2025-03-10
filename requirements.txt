@@ -4,3 +4,4 @@ torch
 torchaudio
 jinja2
 starlette
+numpy
