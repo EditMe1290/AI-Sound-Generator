@@ -1,37 +1,41 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, FileResponse
-import torch
-import torchaudio
-import io
-import uvicorn
+from fastapi import FastAPI, Form
+from fastapi.responses import FileResponse, JSONResponse
 import os
-from starlette.staticfiles import StaticFiles
-from starlette.templating import Jinja2Templates
+import random
+import numpy as np
+import soundfile as sf
 
 app = FastAPI()
 
-# Mount static files (Ensure the 'static' folder exists)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Ensure sounds folder exists
+os.makedirs("sounds", exist_ok=True)
 
-# Set up Jinja2 template engine (Ensure 'templates' folder exists)
-templates = Jinja2Templates(directory="templates")
-
-@app.get("/", response_class=HTMLResponse)
-def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
-
-@app.get("/generate_sound")
-def generate_sound():
-    sample_rate = 22050
-    waveform = torch.randn(1, sample_rate * 3)  # 3-second random noise
-
-    # Define file path
-    output_path = "generated_sound.wav"
+# Generate sound based on input
+def generate_sound(effect_name):
+    sample_rate = 44100  # CD-quality audio
+    duration = 3  # 3 seconds
+    t = np.linspace(0, duration, int(sample_rate * duration), False)
     
-    # Save the waveform to a file
-    torchaudio.save(output_path, waveform, sample_rate, format="wav")
-    
-    return FileResponse(output_path, media_type="audio/wav", filename="generated_sound.wav")
+    # Different sound variations
+    if "explosion" in effect_name.lower():
+        sound = 0.5 * np.sin(2 * np.pi * 200 * t) * np.exp(-3 * t)
+    elif "laser" in effect_name.lower():
+        sound = 0.5 * np.sin(2 * np.pi * 1000 * t) * np.exp(-2 * t)
+    elif "wind" in effect_name.lower():
+        sound = np.random.uniform(-0.2, 0.2, size=t.shape)
+    else:
+        sound = np.sin(2 * np.pi * random.randint(200, 1000) * t)
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    filename = f"sounds/{effect_name.replace(' ', '_')}.wav"
+    sf.write(filename, sound, sample_rate)
+    return filename
+
+@app.post("/generate/")
+async def generate_sound_effect(effect: str = Form(...)):
+    file_path = generate_sound(effect)
+    return JSONResponse({"audio_url": f"/download/{os.path.basename(file_path)}"})
+
+@app.get("/download/{filename}")
+async def download_sound(filename: str):
+    file_path = f"sounds/{filename}"
+    return FileResponse(file_path, media_type="audio/wav", filename=filename)
