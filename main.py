@@ -7,15 +7,16 @@ import soundfile as sf
 
 app = FastAPI()
 
-# Ensure sounds folder exists
-os.makedirs("sounds", exist_ok=True)
+# Use a temporary folder for storing generated sounds
+TEMP_FOLDER = "/tmp/sounds"
+os.makedirs(TEMP_FOLDER, exist_ok=True)
 
-# Generate sound based on input
+# Generate sound dynamically
 def generate_sound(effect_name):
     sample_rate = 44100  # CD-quality audio
     duration = 3  # 3 seconds
     t = np.linspace(0, duration, int(sample_rate * duration), False)
-    
+
     # Different sound variations
     if "explosion" in effect_name.lower():
         sound = 0.5 * np.sin(2 * np.pi * 200 * t) * np.exp(-3 * t)
@@ -26,7 +27,7 @@ def generate_sound(effect_name):
     else:
         sound = np.sin(2 * np.pi * random.randint(200, 1000) * t)
 
-    filename = f"sounds/{effect_name.replace(' ', '_')}.wav"
+    filename = f"{TEMP_FOLDER}/{effect_name.replace(' ', '_')}.wav"
     sf.write(filename, sound, sample_rate)
     return filename
 
@@ -37,10 +38,15 @@ async def generate_sound_effect(effect: str = Form(...)):
 
 @app.get("/download/{filename}")
 async def download_sound(filename: str):
-    file_path = f"sounds/{filename}"
+    file_path = f"{TEMP_FOLDER}/{filename}"
+    
+    # Ensure the file exists before sending
+    if not os.path.exists(file_path):
+        return JSONResponse({"error": "File not found."}, status_code=404)
+
     return FileResponse(file_path, media_type="audio/wav", filename=filename)
 
-# ✅ Add this route to fix the "Not Found" issue
+# ✅ Health check route to confirm API is running
 @app.get("/")
 def home():
     return {"message": "AI Sound Generator is Running!"}
