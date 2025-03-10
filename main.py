@@ -39,3 +39,8 @@ async def generate_sound_effect(effect: str = Form(...)):
 async def download_sound(filename: str):
     file_path = f"sounds/{filename}"
     return FileResponse(file_path, media_type="audio/wav", filename=filename)
+
+# ✅ Add this route to fix the "Not Found" issue
+@app.get("/")
+def home():
+    return {"message": "AI Sound Generator is Running!"}
