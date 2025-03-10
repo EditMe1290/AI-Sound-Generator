@@ -4,25 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Sound Generator</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="static/styles.css">
 </head>
 <body>
     <h1>AI Sound Generator</h1>
-    <button id="generate-btn">Generate Sound</button>
-    <audio id="audio-player" controls></audio>
+    <input type="text" id="soundText" placeholder="Enter sound effect (e.g., explosion, laser)">
+    <button onclick="generateSound()">Generate Sound</button>
     
-    <script>
-        document.getElementById("generate-btn").addEventListener("click", function() {
-            fetch("/generate_sound")
-                .then(response => response.blob())
-                .then(blob => {
-                    const url = URL.createObjectURL(blob);
-                    const audioPlayer = document.getElementById("audio-player");
-                    audioPlayer.src = url;
-                    audioPlayer.play();
-                })
-                .catch(error => console.error("Error generating sound:", error));
-        });
-    </script>
+    <div id="audioContainer"></div>
+
+    <script src="static/script.js"></script>
 </body>
 </html>
